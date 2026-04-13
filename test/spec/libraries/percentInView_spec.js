@@ -88,16 +88,24 @@ describe('percentInView', () => {
       });
     });
 
-    it('observe should reject if the element cannot be observed', async () => {
+    it('observe should reject if an observer error is raised for a trackable target', async () => {
       let err = new Error();
       nakedObs.observe.throws(err);
       try {
-        await obs.observe(null);
+        await obs.observe({});
       } catch (e) {
         expect(e).to.eql(err);
         return;
       }
       sinon.assert.fail('promise should reject');
+    });
+    it('observe should resolve if the target is not an object', async () => {
+      await obs.observe(null);
+      sinon.assert.notCalled(nakedObs.observe);
+    });
+    it('observe should resolve when browser rejects a non-element target', async () => {
+      nakedObs.observe.throws(new TypeError(`Failed to execute 'observe' on 'IntersectionObserver': parameter 1 is not of type 'Element'.`));
+      await obs.observe({});
     });
     it('does not observe the same element more than once', () => {
       obs.observe(el);

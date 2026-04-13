@@ -118,6 +118,8 @@ const percentInViewStatic = (element, { w, h } = {}) => {
 export function intersections(mkObserver) {
   const intersections = new WeakMap();
   let next = defer();
+  const canTrackElement = (element) => element != null && (typeof element === 'object' || typeof element === 'function');
+  const isUnsupportedObservedTarget = (err) => err instanceof TypeError && /not of type 'Element'/.test(err.message);
   function observerCallback(entries) {
     entries.forEach(entry => {
       if ((intersections.get(entry.target)?.time ?? -1) < entry.time) {
@@ -147,8 +149,15 @@ export function intersections(mkObserver) {
    * Observe the given element; returns a promise to the first available intersection observed for it.
    */
   async function observe(element) {
-    if (obs != null && !intersections.has(element)) {
-      obs.observe(element);
+    if (obs != null && canTrackElement(element) && !intersections.has(element)) {
+      try {
+        obs.observe(element);
+      } catch (e) {
+        if (isUnsupportedObservedTarget(e)) {
+          return PbPromise.resolve(getIntersection(element));
+        }
+        throw e;
+      }
       intersections.set(element, null);
       return waitFor(element);
     } else {
@@ -160,6 +169,9 @@ export function intersections(mkObserver) {
    * Return the latest intersection that was observed for the given element.
    */
   function getIntersection(element) {
+    if (!canTrackElement(element)) {
+      return undefined;
+    }
     return intersections.get(element);
   }
 
@@ -193,9 +205,11 @@ startAuction.before(mkIntersectionHook());
 
 export function percentInView(element, { w, h } = {}) {
   const intersection = viewportIntersections.getIntersection(element);
-  if (intersection == null) {
+  if (intersection == null && element != null) {
     viewportIntersections.observe(element);
     return percentInViewStatic(element, { w, h });
+  } else if (intersection == null) {
+    return 0;
   } else {
     const adjusted = applySize(intersection.boundingClientRect, { w, h });
     if (adjusted.width !== intersection.boundingClientRect.width || adjusted.height !== intersection.boundingClientRect.height) {
