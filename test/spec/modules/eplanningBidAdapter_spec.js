@@ -1274,6 +1274,13 @@ describe('E-Planning Adapter', function () {
       expect(storage.getDataFromLocalStorage(storageIdRender)).to.equal('1');
     });
 
+    it('should ignore non-element ad slots when registering viewability', function() {
+      sandbox.stub(document, 'getElementById').withArgs(ADUNIT_CODE_VIEW).returns({ id: ADUNIT_CODE_VIEW });
+
+      expect(() => spec.buildRequests(bidRequests, bidderRequest)).to.not.throw();
+      expect(storage.getDataFromLocalStorage(storageIdRender)).to.equal(null);
+    });
+
     context('when element is fully in view', function() {
       let respuesta;
       beforeEach(function () {
