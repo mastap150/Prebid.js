@@ -429,7 +429,7 @@ function registerViewabilityAllBids(bids) {
   const elementsNotPresent = [];
   bids.forEach(bid => {
     const div = _getAdSlotHTMLElement(bid.adUnitCode);
-    if (isObservableElement(div)) {
+    if (div) {
       registerViewability(div, bid.adUnitCode);
     } else {
       elementsNotPresent.push(bid.adUnitCode);
@@ -487,19 +487,15 @@ function getViewabilityTracker() {
 
   function stopObserveViewability(element) {
     delete visibilityAds[element.id];
-    if (observer && isObservableElement(element)) {
-      observer.unobserve(element);
-    }
+    observer.unobserve(element);
   }
 
   function observeAds(element) {
-    if (isObservableElement(element)) {
-      observer.observe(element);
-    }
+    observer.observe(element);
   }
 
   function initAndVerifyVisibility(element, callback) {
-    if (isObservableElement(element)) {
+    if (element) {
       defineObserver();
       observeAds(element);
       processIntervalVisibilityStatus(0, element, callback);
@@ -514,14 +510,10 @@ function getViewabilityTracker() {
 };
 
 function visibilityHandler(obj) {
-  if (isObservableElement(obj.div)) {
+  if (obj.div) {
     registerAuction(STORAGE_RENDER_PREFIX + obj.name);
     getViewabilityTracker().onView(obj.div, registerAuction.bind(undefined, STORAGE_VIEW_PREFIX + obj.name));
   }
-}
-
-function isObservableElement(element) {
-  return !!(element && element.nodeType === 1 && typeof element.id === 'string');
 }
 
 function cutUrl (url) {
