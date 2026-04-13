@@ -1,4 +1,4 @@
-import { getWinDimensions, inIframe } from '../../src/utils.js';
+import { getWinDimensions, inIframe, logError } from '../../src/utils.js';
 import { getBoundingClientRect } from '../boundingClientRect/boundingClientRect.js';
 import { defer, PbPromise, delay } from '../../src/utils/promise.js';
 import { startAuction } from '../../src/prebid.js';
@@ -153,10 +153,10 @@ export function intersections(mkObserver) {
       try {
         obs.observe(element);
       } catch (e) {
-        if (isUnsupportedObservedTarget(e)) {
-          return PbPromise.resolve(getIntersection(element));
+        if (!isUnsupportedObservedTarget(e)) {
+          logError('Error while observing intersection', e);
         }
-        throw e;
+        return PbPromise.resolve(getIntersection(element));
       }
       intersections.set(element, null);
       return waitFor(element);
@@ -192,8 +192,10 @@ export function mkIntersectionHook(intersections = viewportIntersections) {
       PbPromise.allSettled((request.adUnits ?? []).map(adUnit =>
         intersections.observe(getAdUnitElement(adUnit))
       )),
-      // According to MDN, with threshold 0 the callback should run as soon as the target intersects the root boundary.
-      // In tests, behavior can still vary across environments and targets, so cap how long we wait for intersections.
+      // according to MDN, with threshold 0 "the callback will be run as soon as the target element intersects or touches the boundary of the root, even if no pixels are yet visible"
+      // https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
+      // However, browsers appear to run it even when the element is outside the DOM
+      // just to be sure, cap the amount of time we wait for intersections
       delay(20)
     ]).then(() => next.call(this, request));
   }

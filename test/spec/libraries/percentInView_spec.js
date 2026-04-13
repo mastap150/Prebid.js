@@ -8,6 +8,7 @@ import {
 import * as bbox from 'libraries/boundingClientRect/boundingClientRect';
 
 import { defer } from 'src/utils/promise.js';
+import * as utils from 'src/utils.js';
 
 describe('percentInView', () => {
   let sandbox;
@@ -88,16 +89,12 @@ describe('percentInView', () => {
       });
     });
 
-    it('observe should reject if an observer error is raised for a trackable target', async () => {
-      let err = new Error();
+    it('observe should resolve and log when an observer error is raised for a trackable target', async () => {
+      const err = new Error();
+      const logError = sandbox.stub(utils, 'logError');
       nakedObs.observe.throws(err);
-      try {
-        await obs.observe({});
-      } catch (e) {
-        expect(e).to.eql(err);
-        return;
-      }
-      sinon.assert.fail('promise should reject');
+      await obs.observe({});
+      sinon.assert.calledWith(logError, 'Error while observing intersection', err);
     });
     it('observe should resolve if the target is not an object', async () => {
       await obs.observe(null);
